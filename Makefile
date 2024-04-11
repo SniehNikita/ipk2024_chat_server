@@ -1,7 +1,7 @@
 # @file makefile
 # @author Sniehovskyi Nikita (xsnieh00)
 # @date 11.04.2024
-# @brief Builds project. Use 'make' to build
+# @brief Project builder. Use 'make' to create default server
 
 CC = gcc
 CFLAGS = -Wall -Wextra --std=c11
@@ -14,11 +14,11 @@ SRCDIR = src/
 OBJDIR = objs/
 
 # HEADS = $(wildcard $(SRCDIR)*.h)
-HEADS = src/main.h
+HEADS = src/main.h src/server.h src/error.h src/argv.h src/types.h 
 # SRCS = $(wildcard $(SRCDIR)*.c)
-SRCS = src/main.c
+SRCS = src/main.c src/server.c src/error.c src/argv.c
 # OBJS = $(patsubst $(SRCDIR)%.c,$(OBJDIR)%.o,$(SRCS))
-OBJS = objs/main.o
+OBJS = objs/main.o objs/server.o objs/error.o objs/argv.o
 
 .PHONY: all
 
