@@ -2,7 +2,7 @@
  * @file types.h
  * @author Sniehovskyi Nikita (xsnieh00)
  * @date 11.04.2024
- * @brief Definition of all custom types used in server.
+ * @brief Definition of all custom types used in server and type checks.
  */
 
 #ifndef __TYPES_H__
@@ -12,11 +12,44 @@
 #include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
+#include <regex.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 /**
  * @brief Maximum length of IPV4 address 
  */
 #define IPV4_MAX_LENGTH 16
+
+/**
+ * @brief Maximum length of username 
+ */
+#define USERNAME_MAX_LENGTH 20
+
+/**
+ * @brief Maximum length of channel id 
+ */
+#define CHANNELID_MAX_LENGTH 20
+
+/**
+ * @brief Maximum length of secret
+ */
+#define SECRET_MAX_LENGTH 128
+
+/**
+ * @brief Maximum length of display name
+ */
+#define DISPLAYNAME_MAX_LENGTH 20
+
+/**
+ * @brief Maximum length of message content
+ */
+#define MESSAGECONTENT_MAX_LENGTH 1400
+
+/**
+ * @brief Maximum length of common use string 
+ */
+#define STRING_MAX_LENGTH 2048
 
 /**
  * @brief IPV4 address type (string representation) 
@@ -33,5 +66,106 @@ typedef struct argv_t {
     uint8_t udp_retransmissions;
     bool is_help;
 } argv_t;
+
+/**
+ * @brief Message ID uint type 
+ */
+typedef uint16_t messageid_t;
+
+/**
+ * @brief Username string type 
+ */
+typedef char username_t[USERNAME_MAX_LENGTH];
+
+/**
+ * @brief Channel ID string type
+ * 
+ */
+typedef char channelid_t[CHANNELID_MAX_LENGTH];
+
+/**
+ * @brief Secret string type
+ * 
+ */
+typedef char secret_t[SECRET_MAX_LENGTH];
+
+/**
+ * @brief Displayname string type
+ * 
+ */
+typedef char displayname_t[DISPLAYNAME_MAX_LENGTH];
+
+/**
+ * @brief Message content string type 
+ */
+typedef char messagecontent_t[MESSAGECONTENT_MAX_LENGTH];
+
+/**
+ * @brief Common use string 
+ */
+typedef char string_t[STRING_MAX_LENGTH];
+
+/**
+ * @brief Record about client 
+ */
+typedef struct client_t {
+    int socket_fd; // file descriptor of assigned socket
+    struct sockaddr_in addr; // Address of client
+    displayname_t display_name;
+} client_t;
+
+/**
+ * @brief Checks if given string is message id
+ * 
+ * @param str String to check
+ * @return true String is message id
+ * @return false String is not message id
+ */
+bool is_message_id(string_t str);
+
+/**
+ * @brief Checks if given string is username
+ * 
+ * @param str String to check
+ * @return true String is username
+ * @return false String is not username
+ */
+bool is_username(string_t str);
+
+/**
+ * @brief Checks if given string is channel id
+ * 
+ * @param str String to check
+ * @return true String is channel id
+ * @return false String is not channel id
+ */
+bool is_channel_id(string_t str);
+
+/**
+ * @brief Checks if given string is secret
+ * 
+ * @param str String to check
+ * @return true String is secret
+ * @return false String is not secret
+ */
+bool is_secret(string_t str);
+
+/**
+ * @brief Checks if given string is display name
+ * 
+ * @param str String to check
+ * @return true String is display name
+ * @return false String is not display name
+ */
+bool is_display_name(string_t str);
+
+/**
+ * @brief Checks if given string is message content
+ * 
+ * @param str String to check
+ * @return true String is message content
+ * @return false String is not message content
+ */
+bool is_message_content(string_t str);
 
 #endif

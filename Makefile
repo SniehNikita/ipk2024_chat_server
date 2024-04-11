@@ -16,9 +16,9 @@ OBJDIR = objs/
 # HEADS = $(wildcard $(SRCDIR)*.h)
 HEADS = src/main.h src/server.h src/error.h src/argv.h src/types.h 
 # SRCS = $(wildcard $(SRCDIR)*.c)
-SRCS = src/main.c src/server.c src/error.c src/argv.c
+SRCS = src/main.c src/server.c src/error.c src/argv.c src/types.c
 # OBJS = $(patsubst $(SRCDIR)%.c,$(OBJDIR)%.o,$(SRCS))
-OBJS = objs/main.o objs/server.o objs/error.o objs/argv.o
+OBJS = objs/main.o objs/server.o objs/error.o objs/argv.o objs/types.o
 
 .PHONY: all
 
