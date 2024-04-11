@@ -20,4 +20,14 @@
  */
 extern int errno;
 
+/**
+ * @brief Parses argc number of arguments from argv_in into argv_out
+ * 
+ * @param argc Number of arguments in argv_in
+ * @param argv_in Array of input arguments
+ * @param argv_out Structure of arguments retrieved from argv_in
+ * @return int Result code
+ */
+int parse_argv(int argc, char **argv_in, argv_t * argv_out);
+
 #endif

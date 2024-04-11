@@ -15,9 +15,14 @@
 #include "types.h"
 #include "error.h"
 
-/**
- * @brief Described in 'main.h' 
- */
-extern int errno;
+#define DEBUG
+
+typedef enum {
+    error_argv_malformed_argv = 1
+} error_code;
+
+int error_out(error_code errno, int lineno, char *file_name, char *msg);
+
+char * _get_error_msg(error_code errno);
 
 #endif

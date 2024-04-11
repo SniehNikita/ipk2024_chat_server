@@ -27,4 +27,9 @@
  */
 extern int errno;
 
+/**
+ * @brief Described in 'main.h' 
+ */
+extern argv_t argv;
+
 #endif
