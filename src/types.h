@@ -70,7 +70,7 @@ typedef struct argv_t {
 /**
  * @brief Message ID uint type 
  */
-typedef uint16_t messageid_t;
+typedef uint16_t message_id_t;
 
 /**
  * @brief Username string type 
@@ -81,7 +81,7 @@ typedef char username_t[USERNAME_MAX_LENGTH];
  * @brief Channel ID string type
  * 
  */
-typedef char channelid_t[CHANNELID_MAX_LENGTH];
+typedef char channel_id_t[CHANNELID_MAX_LENGTH];
 
 /**
  * @brief Secret string type
@@ -93,12 +93,12 @@ typedef char secret_t[SECRET_MAX_LENGTH];
  * @brief Displayname string type
  * 
  */
-typedef char displayname_t[DISPLAYNAME_MAX_LENGTH];
+typedef char display_name_t[DISPLAYNAME_MAX_LENGTH];
 
 /**
  * @brief Message content string type 
  */
-typedef char messagecontent_t[MESSAGECONTENT_MAX_LENGTH];
+typedef char message_content_t[MESSAGECONTENT_MAX_LENGTH];
 
 /**
  * @brief Common use string 
@@ -106,12 +106,96 @@ typedef char messagecontent_t[MESSAGECONTENT_MAX_LENGTH];
 typedef char string_t[STRING_MAX_LENGTH];
 
 /**
+ * @brief Message type constants 
+ */
+typedef enum {
+    e_confirm = 0x00,
+    e_reply = 0x01,
+    e_auth = 0x02,
+    e_join = 0x03,
+    e_msg = 0x04,
+    e_err = 0xFE,
+    e_bye = 0xFF
+} msg_type_t;
+
+/**
+ * @brief Content of confirm message 
+ */
+typedef struct msg_confirm_t {
+    message_id_t ref_id;
+} msg_confirm_t;
+
+/**
+ * @brief Content of reply message 
+ */
+typedef struct msg_reply_t {
+    bool result;
+    message_id_t ref_id;
+    message_content_t content;
+} msg_reply_t;
+
+/**
+ * @brief Content of auth message 
+ */
+typedef struct msg_auth_t {
+    username_t username;
+    display_name_t display_name;
+    secret_t secret;
+} msg_auth_t;
+
+/**
+ * @brief Content of join message 
+ */
+typedef struct msg_join_t {
+    channel_id_t channel_id;
+    display_name_t display_name;
+} msg_join_t;
+
+/**
+ * @brief Content of msg message 
+ */
+typedef struct msg_msg_t {
+    display_name_t display_name;
+    message_content_t content;
+} msg_msg_t;
+
+/**
+ * @brief Content of err message 
+ */
+typedef struct msg_err_t {
+    display_name_t display_name;
+    message_content_t content;
+} msg_err_t;
+
+/**
+ * @brief Union of all possible message contents 
+ */
+typedef union msg_data_t {
+    msg_confirm_t confirm;
+    msg_reply_t reply;
+    msg_auth_t auth;
+    msg_join_t join;
+    msg_msg_t msg;
+    msg_err_t err;
+} msg_data_t;
+
+/**
+ * @brief Unified communication message
+ */
+typedef struct t_msg {
+    msg_type_t type;
+    message_id_t id;
+    msg_data_t data;
+} t_msg;
+
+/**
  * @brief Record about client 
  */
 typedef struct client_t {
     int socket_fd; // file descriptor of assigned socket
     struct sockaddr_in addr; // Address of client
-    displayname_t display_name;
+    display_name_t display_name;
+    channel_id_t channel_id;
 } client_t;
 
 /**
