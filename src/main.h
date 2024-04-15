@@ -48,7 +48,7 @@ int tcp_polling();
  * 
  * @return int Result code
  */
-int tcp_polling();
+int udp_polling();
 
 /**
  * @brief Processing received message from clients

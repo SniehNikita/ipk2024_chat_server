@@ -21,6 +21,7 @@
 #include <fcntl.h>
 
 #include "types.h"
+#include "queue.h"
 #include "error.h"
 
 /**
@@ -53,13 +54,12 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
 /**
  * @brief Read message on socket
  * 
- * @param protocol Protocol used on socket
- * @param client_sockfd Client socket
+ * @param client Client data to receive from
  * @param buf Buffered message
  * @param size Size of received message
  * @return int Result code
  */
-int server_read(transport_protocol_t protocol, int client_sockfd, string_t * buf, int * size);
+int server_read(queue_item_t * client, string_t * buf, int * size);
 
 /**
  * @brief Close communication of fd

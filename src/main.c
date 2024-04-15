@@ -80,6 +80,7 @@ int main(int argc, char **argv_in) {
     pollfd.pollfd_list[1].events = POLLIN;
 
     while (true) {
+        printf("Pollin'\n");
         int ret = poll(pollfd.pollfd_list, WELCOME_SOCK_COUNT + pollfd.cnt, POLL_INTERVAL);
         if (ret > 0) {
             // TCP Welcome
@@ -88,7 +89,7 @@ int main(int argc, char **argv_in) {
             }
             // UDP Welcome
             if (pollfd.pollfd_list[1].revents & POLLIN) {
-                // server_accept(e_udp, );
+                udp_polling();
             }
             for (int i = WELCOME_SOCK_COUNT; i < WELCOME_SOCK_COUNT + pollfd.cnt; i++) {
                 if (pollfd.pollfd_list[i].fd != 0 && (pollfd.pollfd_list[i].revents & POLLIN)) {
@@ -140,6 +141,39 @@ int tcp_polling() {
 }
 
 int udp_polling() {
+    struct sockaddr_in client_addr;
+    queue_item_t * client;
+    int fd_accept = 0;
+
+    if (server_accept(e_udp, &fd_accept, &client_addr)) {
+        return errno;
+    }
+    client = get_client_by_addr(clients, client_addr);
+    if (client != NULL) {
+        // Client already exists. Notify him about that
+        // TODO send smth
+        return 0;
+    }
+    // Not exist ? create client and save fd
+    if (add_poll_fd(&pollfd, fd_accept, e_udp)) {
+        // If failed -> cannot get connection, error message should be sent to client
+        // Accepted socket won't saved
+        // TODO send reply/error to new_fd fd
+        return 0;
+    }
+    // Fd added to pollfd list
+    // TODO read welcome message and process it
+    client = queue_create_item();
+    if (client == NULL) {
+        // TODO read/clear fd to not block process
+        return errno;
+    }
+    client->data.client.sockfd = fd_accept;
+    client->id = client_cnt++;
+    client->data.client.protocol = e_udp;
+    client->data.client.addr = client_addr;
+    client->data.client.msg_count = 0;
+    queue_add(clients, client);
 
     return 0;
 }
@@ -156,7 +190,7 @@ int process_msg(int fd) {
         return errno = error_out(error_fatl_client_missing, __LINE__, __FILE__, NULL); 
     }
     memset(buf, '\0', sizeof(buf));
-    if (server_read(client->data.client.protocol, fd, &buf, &buf_size)) {
+    if (server_read(client, &buf, &buf_size)) {
         return errno;
     }
     if (buf_size == -1) {
