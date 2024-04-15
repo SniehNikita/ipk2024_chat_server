@@ -107,7 +107,13 @@ int del_poll_fd(pollfd_list_t * pollfd, int fd) {
     }
     if (i2 == 0) {
         i2 = pollfd->size - 1;
+    } else {
+        i2--;
+        if (i2 == WELCOME_SOCK_COUNT - 1) {
+            i2 = i1;
+        }
     }
+    
     pollfd->pollfd_list[i1].fd = pollfd->pollfd_list[i2].fd;
     pollfd->protocol[i1] = pollfd->protocol[i2];
     pollfd->pollfd_list[i2].fd = 0;
