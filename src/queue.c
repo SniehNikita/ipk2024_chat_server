@@ -57,7 +57,7 @@ queue_item_t * queue_next(queue_item_t * item) {
 
 queue_item_t * queue_get(queue_t * queue, message_id_t id) {
     queue_item_t * item = queue->first;
-    while (item != NULL && item->msg.id != id) {
+    while (item != NULL && item->data.msg.id != id) {
         item = item->next;
     }
     return item;
@@ -70,13 +70,13 @@ queue_item_t * queue_remove(queue_t * queue, message_id_t id) {
     if (last_item == NULL) {
         return last_item;
     }
-    if (last_item->msg.id == id) {
+    if (last_item->id == id) {
         queue->first = queue->first->next;
         return last_item;
     }
     item = last_item->next;
     while (item != NULL) {
-        if (item->msg.id == id) {
+        if (item->id == id) {
             last_item->next = item->next;
             break;
         }
@@ -101,7 +101,7 @@ queue_item_t * queue_last(queue_t * queue) {
 void queue_destroy(queue_t * queue) {
     if (queue != NULL) { 
         while (queue->first != NULL) {
-            queue_destroy_item(queue_remove(queue, queue->first->msg.id));
+            queue_destroy_item(queue_remove(queue, queue->first->id));
         }
         free(queue);
         queue = NULL;

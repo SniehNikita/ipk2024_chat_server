@@ -17,6 +17,18 @@
 #include <netinet/in.h>
 
 /**
+ * @brief Number of welcome sockets
+ */
+#define WELCOME_SOCK_COUNT 2
+/**
+ * @brief Number which will be added to poll when realloced
+ */
+#define POLL_REALLOC_DELTA 16
+
+// Poll interval in miliseconds
+#define POLL_INTERVAL 125
+
+/**
  * @brief Maximum length of IPV4 address 
  */
 #define IPV4_MAX_LENGTH 16
@@ -52,6 +64,16 @@
 #define STRING_MAX_LENGTH 2048
 
 /**
+ * @brief Maximum number of confirmed message ids stored by server per client
+ */
+#define MAX_CONFIRMED_MSG 32
+
+/**
+ * @brief Maximum number of connections waiting on tcp socket (for listen())
+ */
+#define MAX_BACKLOG_CNT 16
+
+/**
  * @brief IPV4 address type (string representation) 
  */
 typedef char ipv4_t[IPV4_MAX_LENGTH];
@@ -67,6 +89,13 @@ typedef struct argv_t {
     bool is_help;
 } argv_t;
 
+/**
+ * @brief Protocol type 
+ */
+typedef enum {
+    e_udp = 1,
+    e_tcp = 2
+} transport_protocol_t;
 /**
  * @brief Message ID uint type 
  */
@@ -182,21 +211,39 @@ typedef union msg_data_t {
 /**
  * @brief Unified communication message
  */
-typedef struct t_msg {
+typedef struct msg_t {
+    bool is_confirmed; // Is message confirmed by client
+    uint8_t retry_count; // Count of total processed retries
     msg_type_t type;
     message_id_t id;
     msg_data_t data;
-} t_msg;
+} msg_t;
 
 /**
- * @brief Record about client 
+ * @brief Client record
  */
 typedef struct client_t {
-    int socket_fd; // file descriptor of assigned socket
+    int sockfd; // file descriptor of assigned socket
+    transport_protocol_t protocol;
     struct sockaddr_in addr; // Address of client
+    username_t username;
     display_name_t display_name;
     channel_id_t channel_id;
+    // Counts the number of messages. Points to the last confirmed msg id of msg_in_confirmed queue (+1 is the oldest message)
+    message_id_t msg_count;
+    // Stored messages numbers that were already confirmed by server, if client
+    message_id_t msg_in_confirmed[MAX_CONFIRMED_MSG];
 } client_t;
+
+/**
+ * @brief List of poll fds. Realloced if needed 
+ */
+typedef struct pollfd_list_t {
+    int size; // Current size of pollfd, if exceeded -> will be realloced
+    int cnt; // Count of active fds
+    struct pollfd * pollfd_list; // List of poll fds 
+    transport_protocol_t * protocol;
+} pollfd_list_t;
 
 /**
  * @brief Checks if given string is message id

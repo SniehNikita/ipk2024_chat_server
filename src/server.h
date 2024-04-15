@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <unistd.h> 
 #include <netdb.h>
+#include <fcntl.h>
 
 #include "types.h"
 #include "error.h"
@@ -31,5 +32,62 @@ extern int errno;
  * @brief Described in 'main.h' 
  */
 extern argv_t argv;
+
+/**
+ * @brief Prepare sockets and bind addres
+ * 
+ * @return int Result code
+ */
+int server_open();
+
+/**
+ * @brief Accepts new connection on specified protocol
+ * 
+ * @param protocol Protocol where new connection is waiting
+ * @param client_sockfd New connection socked fd 
+ * @param client_addr New connection address
+ * @return int Result code
+ */
+int server_accept(transport_protocol_t protocol, int * client_sockfd, struct sockaddr_in * client_addr);
+
+/**
+ * @brief Read message on socket
+ * 
+ * @param protocol Protocol used on socket
+ * @param client_sockfd Client socket
+ * @param buf Buffered message
+ * @param size Size of received message
+ * @return int Result code
+ */
+int server_read(transport_protocol_t protocol, int client_sockfd, string_t * buf, int * size);
+
+/**
+ * @brief Close communication of fd
+ * 
+ * @param fd Fd
+ * @return int Result code
+ */
+int server_close_client(int fd);
+
+/**
+ * @brief Closes sockets
+ * 
+ * @return int Result code
+ */
+int server_close();
+
+/**
+ * @brief Get the tcp welcome socket
+ * 
+ * @return int Socket fd
+ */
+int get_tcp_socket();
+
+/**
+ * @brief Get the udp welcome socket
+ * 
+ * @return int Socket fd
+ */
+int get_udp_socket();
 
 #endif
