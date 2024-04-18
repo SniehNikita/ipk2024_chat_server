@@ -27,7 +27,7 @@ int server_open() {
     }
 
     setsockopt(sockfd_udp_welcome, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
-    if (fcntl(sockfd_udp_welcome, F_SETFL, fcntl(sockfd_tcp_welcome, F_GETFL, 0) | O_NONBLOCK)) {
+    if (fcntl(sockfd_udp_welcome, F_SETFL, fcntl(sockfd_udp_welcome, F_GETFL, 0) | O_NONBLOCK)) {
         return errno = error_out(error_serv_sock_init_fail, __LINE__, __FILE__, NULL);
     }
 
@@ -51,7 +51,11 @@ int server_open() {
 }
 
 int server_accept(transport_protocol_t protocol, int * client_sockfd, struct sockaddr_in * client_addr) {
-    uint32_t addr_in_size = sizeof(*client_addr);
+    uint32_t addr_in_size;
+    struct sockaddr_in new_addr;
+    string_t str;
+
+    addr_in_size = sizeof(*client_addr);
     switch (protocol) {
         case e_tcp:
             if ((*client_sockfd = accept(sockfd_tcp_welcome, (struct sockaddr *)client_addr, &addr_in_size)) == -1) {
@@ -62,7 +66,6 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
             }
             break;
         case e_udp:
-            struct sockaddr_in new_addr;
             new_addr.sin_family = AF_INET;
             new_addr.sin_port = htons(0);
             new_addr.sin_addr.s_addr = inet_addr(argv.ipv4);
@@ -76,12 +79,7 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
             if (bind(*client_sockfd, (struct sockaddr *) &new_addr, sizeof(new_addr)) < 0) {
                 return errno = error_out(error_serv_addr_bind_fail, __LINE__, __FILE__, NULL);
             }
-            string_t str;
             memset(&str, '\0', sizeof(str));
-            recvfrom(sockfd_udp_welcome, &str, sizeof(str), 0, (struct sockaddr *)client_addr, &addr_in_size);
-            printf(">> %s\n", str);
-            sendto(*client_sockfd, "\0\0\0", 3, 0, (struct sockaddr *)client_addr, addr_in_size);
-            sendto(*client_sockfd, "\1\0\1\1\0\0OK\0", 9, 0, (struct sockaddr *)client_addr, addr_in_size);
             break;
     }
     return 0;

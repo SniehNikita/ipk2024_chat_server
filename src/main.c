@@ -80,9 +80,10 @@ int main(int argc, char **argv_in) {
     pollfd.pollfd_list[1].events = POLLIN;
 
     while (true) {
-        printf("Pollin'\n");
-        int ret = poll(pollfd.pollfd_list, WELCOME_SOCK_COUNT + pollfd.cnt, POLL_INTERVAL);
-        if (ret > 0) {
+        int next_timeout;
+        next_timeout = get_next_timeout(msg_out_buf);
+        next_timeout = next_timeout > POLL_INTERVAL ? POLL_INTERVAL : next_timeout;
+        if (poll(pollfd.pollfd_list, WELCOME_SOCK_COUNT + pollfd.cnt, next_timeout) > 0) {
             // TCP Welcome
             if (pollfd.pollfd_list[0].revents & POLLIN) {
                 tcp_polling();

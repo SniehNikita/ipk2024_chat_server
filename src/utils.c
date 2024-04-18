@@ -121,3 +121,16 @@ int del_poll_fd(pollfd_list_t * pollfd, int fd) {
     pollfd->cnt--;
     return 0;
 }
+
+int get_next_timeout(queue_t * msg) {
+    int ret = 0;
+    queue_item_t * item = queue_first(msg);
+
+    while (item != NULL) {
+        if (item->data.msg.is_confirmed == false && item->data.msg.timeout < ret) {
+            ret = item->data.msg.timeout;
+        }
+        item = queue_next(item);
+    }
+    return ret;
+}

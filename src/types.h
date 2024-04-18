@@ -214,6 +214,7 @@ typedef union msg_data_t {
 typedef struct msg_t {
     bool is_confirmed; // Is message confirmed by client
     uint8_t retry_count; // Count of total processed retries
+    uint16_t timeout; // Time in ms to next timeout
     msg_type_t type;
     message_id_t id;
     msg_data_t data;
