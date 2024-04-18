@@ -86,4 +86,12 @@ int add_poll_fd(pollfd_list_t * pollfd, int new_fd, transport_protocol_t prot);
  */
 int del_poll_fd(pollfd_list_t * pollfd, int fd);
 
+/**
+ * @brief Selects lowest time to timeout from message queue and returns it
+ * 
+ * @param msg Message queue
+ * @return int Time in ms until next message confirmation will timeout
+ */
+int get_next_timeout(queue_t * msg);
+
 #endif
