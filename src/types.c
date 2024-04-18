@@ -58,7 +58,7 @@ bool is_secret(string_t str) {
 bool is_display_name(string_t str) {
     regex_t regex;
 
-    regcomp(&regex, "^[[:graph:]-]\\{1,21\\}$", 0);
+    regcomp(&regex, "^[[:graph:]]\\{1,21\\}$", 0);
 
     if (!regexec(&regex, str, 0, NULL, 0)) {
         return true;
@@ -70,7 +70,7 @@ bool is_display_name(string_t str) {
 bool is_message_content(string_t str) {
     regex_t regex;
 
-    regcomp(&regex, "^[[:print:]-]\\{1,1401\\}$", 0);
+    regcomp(&regex, "^[[:print:]]\\{1,1401\\}$", 0);
 
     if (!regexec(&regex, str, 0, NULL, 0)) {
         return true;
