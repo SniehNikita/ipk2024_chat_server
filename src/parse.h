@@ -22,7 +22,7 @@
 extern int errno;
 
 /**
- * @brief Takes 1 encoded message and decodes it acording to protocol encoding specification
+ * @brief Routing function for message parser. Takes 1 encoded message and decodes it acording to protocol encoding specification
  * 
  * @param protocol Protocol type (how to decode message)
  * @param msg_in Received encoded message
