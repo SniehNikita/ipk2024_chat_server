@@ -34,9 +34,9 @@ char * _get_error_msg(error_code errno) {
         case error_serv_addr_bind_fail: return "Address binding failed";
         case error_serv_tcp_listn_fail: return "Listening on TCP socket failed";
         case error_serv_tcp_accpt_fail: return "Accept on TCP socket failed";
-        // case : return "";
-        // case : return "";
-        // case : return "";
+        case error_pars_tcp_parse_fail: return "TCP message parse failed";
+        case error_pars_tcp_no_crlf_ch: return "Message doesn't end with \\r\\n";
+        case error_comp_tcp_no_confirm: return "Confirm is not part of TCP";
         // case : return "";
         // case : return "";
         // case : return "";
