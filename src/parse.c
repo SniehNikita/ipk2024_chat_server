@@ -24,50 +24,64 @@ int parse_tcp(string_t msg_in, msg_t * msg_out) {
         msg_out->type = e_join;
         memcpy(msg_out->data.join.channel_id, msg_in + pmatch[1].rm_so, pmatch[1].rm_eo - pmatch[1].rm_so);
         memcpy(msg_out->data.join.display_name, msg_in + pmatch[2].rm_so, pmatch[2].rm_eo - pmatch[2].rm_so);
+        regfree(&regex);
         return 0;
     }
+    regfree(&regex);
     regcomp(&regex, "^AUTH \\([[:alnum:]-]\\{1,21\\}\\) AS \\([[:graph:]]\\{1,21\\}\\) USING \\([[:alnum:]-]\\{1,129\\}\\)\r\n$", 0);
     if (!regexec(&regex, msg_in, 4, pmatch, 0)) {
         msg_out->type = e_auth;
         memcpy(msg_out->data.auth.username, msg_in + pmatch[1].rm_so, pmatch[1].rm_eo - pmatch[1].rm_so);
         memcpy(msg_out->data.auth.display_name, msg_in + pmatch[2].rm_so, pmatch[2].rm_eo - pmatch[2].rm_so);
         memcpy(msg_out->data.auth.secret, msg_in + pmatch[3].rm_so, pmatch[3].rm_eo - pmatch[3].rm_so);
+        regfree(&regex);
         return 0;
     }
+    regfree(&regex);
     regcomp(&regex, "^MSG FROM \\([[:graph:]]\\{1,21\\}\\) IS \\([[:print:]]\\{1,1401\\}\\)\r\n$", 0);
     if (!regexec(&regex, msg_in, 3, pmatch, 0)) {
         msg_out->type = e_msg;
         memcpy(msg_out->data.msg.display_name, msg_in + pmatch[1].rm_so, pmatch[1].rm_eo - pmatch[1].rm_so);
         memcpy(msg_out->data.msg.content, msg_in + pmatch[2].rm_so, pmatch[2].rm_eo - pmatch[2].rm_so);
+        regfree(&regex);
         return 0;
     }
+    regfree(&regex);
     regcomp(&regex, "^ERR FROM \\([[:graph:]]\\{1,21\\}\\) IS \\([[:print:]]\\{1,1401\\}\\)\r\n$", 0);
     if (!regexec(&regex, msg_in, 3, pmatch, 0)) {
         msg_out->type = e_err;
         memcpy(msg_out->data.err.display_name, msg_in + pmatch[1].rm_so, pmatch[1].rm_eo - pmatch[1].rm_so);
         memcpy(msg_out->data.err.content, msg_in + pmatch[2].rm_so, pmatch[2].rm_eo - pmatch[2].rm_so);
+        regfree(&regex);
         return 0;
     }
+    regfree(&regex);
     regcomp(&regex, "^REPLY OK IS \\([[:print:]]\\{1,1401\\}\\)\r\n$", 0);
     if (!regexec(&regex, msg_in, 2, pmatch, 0)) {
         msg_out->type = e_reply;
         msg_out->data.reply.result = true;
         memcpy(msg_out->data.reply.content, msg_in + pmatch[1].rm_so, pmatch[1].rm_eo - pmatch[1].rm_so);
+        regfree(&regex);
         return 0;
     }
+    regfree(&regex);
     regcomp(&regex, "^REPLY NOK IS \\([[:print:]]\\{1,1401\\}\\)\r\n$", 0);
     if (!regexec(&regex, msg_in, 2, pmatch, 0)) {
         msg_out->type = e_reply;
         msg_out->data.reply.result = false;
         memcpy(msg_out->data.reply.content, msg_in + pmatch[1].rm_so, pmatch[1].rm_eo - pmatch[1].rm_so);
+        regfree(&regex);
         return 0;
     }
+    regfree(&regex);
     regcomp(&regex, "^BYE\r\n$", 0);
     if (!regexec(&regex, msg_in, 0, pmatch, 0)) {
         msg_out->type = e_bye;
+        regfree(&regex);
         return 0;
     }
     
+    regfree(&regex);
     return errno = error_out(error_pars_tcp_parse_fail, __LINE__, __FILE__, NULL);
 }
 
@@ -75,8 +89,8 @@ int parse_udp(string_t msg_in, int msg_in_size, msg_t * msg_out) {
     string_t * match;
     int m;
 
-    match = malloc(sizeof(string_t) * 3);
-    memset(*match, '\0', sizeof(match));
+    match = malloc(sizeof(*match) * 3);
+    memset(*match, '\0', sizeof(*match) * 3);
     switch((unsigned char) msg_in[0]) {
         case e_confirm:
             msg_out->type = e_confirm;
@@ -154,7 +168,7 @@ int parse_udp(string_t msg_in, int msg_in_size, msg_t * msg_out) {
     }
 
     free(match);
-    return errno = error_out(error_pars_tcp_parse_fail, __LINE__, __FILE__, NULL);
+    return errno = error_out(error_pars_udp_parse_fail, __LINE__, __FILE__, NULL);
 }
 
 int split_l(string_t str, char c, int s, string_t ** ptr, int max, int len) {
