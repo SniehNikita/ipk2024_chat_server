@@ -55,7 +55,7 @@ queue_item_t * queue_next(queue_item_t * item) {
     return item->next;
 }
 
-queue_item_t * queue_get(queue_t * queue, message_id_t id) {
+queue_item_t * queue_get(queue_t * queue, id_t id) {
     queue_item_t * item = queue->first;
     while (item != NULL && item->id != id) {
         item = item->next;
@@ -63,7 +63,7 @@ queue_item_t * queue_get(queue_t * queue, message_id_t id) {
     return item;
 }
 
-queue_item_t * queue_remove(queue_t * queue, message_id_t id) {
+queue_item_t * queue_remove(queue_t * queue, id_t id) {
     queue_item_t * last_item = queue->first;
     queue_item_t * item;
 

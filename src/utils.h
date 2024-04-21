@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <poll.h>
+#include <unistd.h> 
 
 #include "types.h"
 #include "queue.h"

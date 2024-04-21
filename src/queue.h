@@ -35,7 +35,7 @@ typedef union queue_item_content_t {
 } queue_item_content_t;
 
 typedef struct queue_item_t {
-    message_id_t id; // Id of queue item
+    id_t id; // Id of queue item
     queue_item_type_t type; // Type of item in queue
     queue_item_content_t data;
     struct queue_item_t * next;

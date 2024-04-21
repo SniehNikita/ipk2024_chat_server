@@ -102,7 +102,7 @@ int del_poll_fd(pollfd_list_t * pollfd, int fd) {
         i++;
     }
     if (i1 == 0) {
-        // Not found -> does not exitsss
+        // Not found -> does not exist
         return 0; 
     }
     if (i2 == 0) {
@@ -113,7 +113,7 @@ int del_poll_fd(pollfd_list_t * pollfd, int fd) {
             i2 = i1;
         }
     }
-    
+    close(pollfd->pollfd_list[i].fd); // Close file descriptor
     pollfd->pollfd_list[i1].fd = pollfd->pollfd_list[i2].fd;
     pollfd->protocol[i1] = pollfd->protocol[i2];
     pollfd->pollfd_list[i2].fd = 0;

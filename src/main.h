@@ -56,17 +56,25 @@ int process_msg(queue_item_t * client, msg_t msg_in);
 
 int process_msg_sock(int fd);
 
-bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out);
+int udp_timeout(int interval);
 
-int forward_msg_all(queue_item_t * client, msg_t msg);
+bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out);
 
 int forward_msg_channel(queue_item_t * client, msg_t msg, channel_id_t channel);
 
+void notify_join(queue_item_t * client);
+
+void notify_leave(queue_item_t * client);
+
 void send_error(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, message_content_t err_msg);
 
-void send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg);
+void send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg, bool is_retransmitted);
 
 int read_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in * addr, msg_t * msg);
+
+int close_client(queue_item_t * client);
+
+int delete_client(queue_item_t * client);
 
 /**
  * @brief Hadler for sigint signal
