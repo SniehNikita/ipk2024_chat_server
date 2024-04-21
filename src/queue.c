@@ -57,7 +57,7 @@ queue_item_t * queue_next(queue_item_t * item) {
 
 queue_item_t * queue_get(queue_t * queue, message_id_t id) {
     queue_item_t * item = queue->first;
-    while (item != NULL && item->data.msg.id != id) {
+    while (item != NULL && item->id != id) {
         item = item->next;
     }
     return item;
