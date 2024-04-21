@@ -14,11 +14,35 @@ SRCDIR = src/
 OBJDIR = objs/
 
 # HEADS = $(wildcard $(SRCDIR)*.h)
-HEADS = src/main.h src/server.h src/error.h src/argv.h src/types.h src/queue.h src/utils.h src/parse.h src/compose.h
+HEADS = src/main.h \
+		src/server.h \
+		src/error.h \
+		src/argv.h \
+		src/types.h \
+		src/queue.h \
+		src/utils.h \
+		src/parse.h \
+		src/compose.h
 # SRCS = $(wildcard $(SRCDIR)*.c)
-SRCS = src/main.c src/server.c src/error.c src/argv.c src/types.c src/queue.c src/utils.c src/parse.c src/compose.c
+SRCS = 	src/main.c \
+		src/server.c \
+		src/error.c \
+		src/argv.c \
+		src/types.c \
+		src/queue.c \
+		src/utils.c \
+		src/parse.c \
+		src/compose.c
 # OBJS = $(patsubst $(SRCDIR)%.c,$(OBJDIR)%.o,$(SRCS))
-OBJS = objs/main.o objs/server.o objs/error.o objs/argv.o objs/types.o objs/queue.o objs/utils.o objs/parse.o objs/compose.o
+OBJS = 	objs/main.o \
+		objs/server.o \
+		objs/error.o \
+		objs/argv.o \
+		objs/types.o \
+		objs/queue.o \
+		objs/utils.o \
+		objs/parse.o \
+		objs/compose.o
 
 .PHONY: all
 
