@@ -59,7 +59,11 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
  * @param size Size of received message
  * @return int Result code
  */
-int server_read(queue_item_t * client, string_t * buf, int * size);
+int server_read(queue_item_t * client, string_t * buf);
+
+int server_read_sock(transport_protocol_t protocol, int sockfd, struct sockaddr_in * addr, string_t * buf);
+
+int server_send(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, string_t buf, int buf_size);
 
 /**
  * @brief Close communication of fd

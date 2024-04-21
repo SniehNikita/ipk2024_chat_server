@@ -134,3 +134,39 @@ int get_next_timeout(queue_t * msg) {
     }
     return ret;
 }
+
+void msg_fill_error(msg_t * msg, display_name_t dname, message_content_t cont) {
+    msg->type = e_err;
+    memcpy(msg->data.err.display_name, dname, strlen(dname));
+    memcpy(msg->data.err.content, cont, strlen(cont));
+}
+
+void msg_fill_reply(msg_t * msg, bool result, message_id_t ref_id, message_content_t cont) {
+    msg->type = e_reply;
+    msg->data.reply.ref_id = ref_id;
+    msg->data.reply.result = result;
+    memcpy(msg->data.err.content, cont, strlen(cont));
+}
+
+bool cmp_clients(queue_item_t * client1, queue_item_t * client2) {
+    if (client1->data.client.sockfd != client2->data.client.sockfd) {
+        return false;
+    }
+    if (strcmp(client1->data.client.username, client2->data.client.username)) {
+        return false;
+    }
+
+    return true;
+}
+
+void print_msg_type(msg_type_t type) {
+    switch (type) {
+        case e_confirm: fprintf(stdout, "CONFIRM"); break;
+        case e_reply: fprintf(stdout, "REPLY"); break;
+        case e_auth: fprintf(stdout, "AUTH"); break;
+        case e_join: fprintf(stdout, "JOIN"); break;
+        case e_msg: fprintf(stdout, "MSG"); break;
+        case e_err: fprintf(stdout, "ERR"); break;
+        case e_bye: fprintf(stdout, "BYE"); break;
+    }
+}

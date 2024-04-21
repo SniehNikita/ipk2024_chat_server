@@ -16,6 +16,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+#include "fsm.h"
+
 /**
  * @brief Number of welcome sockets
  */
@@ -227,12 +229,13 @@ typedef struct client_t {
     int sockfd; // file descriptor of assigned socket
     transport_protocol_t protocol;
     struct sockaddr_in addr; // Address of client
+    fsm_state_t state; // FSM's state of client
     username_t username;
     display_name_t display_name;
     channel_id_t channel_id;
     // Counts the number of messages. Points to the last confirmed msg id of msg_in_confirmed queue (+1 is the oldest message)
     message_id_t msg_count;
-    // Stored messages numbers that were already confirmed by server, if client
+    // Stored messages numbers that were already confirmed by server, in case client didn't get confirmation
     message_id_t msg_in_confirmed[MAX_CONFIRMED_MSG];
 } client_t;
 

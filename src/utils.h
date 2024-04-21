@@ -94,4 +94,27 @@ int del_poll_fd(pollfd_list_t * pollfd, int fd);
  */
 int get_next_timeout(queue_t * msg);
 
+/**
+ * @brief Fills error message data
+ * 
+ * @param msg Pointer to message
+ * @param dname Display name
+ * @param cont Content
+ */
+void msg_fill_error(msg_t * msg, display_name_t dname, message_content_t cont);
+
+/**
+ * @brief Fills reply message data
+ * 
+ * @param msg Pointer to message
+ * @param result Result
+ * @param ref_id Reffered id
+ * @param cont Content
+ */
+void msg_fill_reply(msg_t * msg, bool result, message_id_t ref_id, message_content_t cont);
+
+bool cmp_clients(queue_item_t * client1, queue_item_t * client2);
+
+void print_msg_type(msg_type_t type);
+
 #endif

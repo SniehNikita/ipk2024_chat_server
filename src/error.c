@@ -37,7 +37,7 @@ char * _get_error_msg(error_code errno) {
         case error_pars_tcp_parse_fail: return "TCP message parse failed";
         case error_pars_tcp_no_crlf_ch: return "Message doesn't end with \\r\\n";
         case error_comp_tcp_no_confirm: return "Confirm is not part of TCP";
-        // case : return "";
+        case error_pars_udp_parse_fail: return "UDP message parse failed";
         // case : return "";
         // case : return "";
         // case : return "";

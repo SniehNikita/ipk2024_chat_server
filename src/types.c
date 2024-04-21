@@ -13,9 +13,11 @@ bool is_message_id(string_t str) {
     regcomp(&regex, "^[0-9]\\+$", 0);
 
     if (!regexec(&regex, str, 0, NULL, 0)) {
+        regfree(&regex);
         return true;
     }
     
+    regfree(&regex);
     return false;
 }
 
@@ -25,9 +27,11 @@ bool is_username(string_t str) {
     regcomp(&regex, "^[[:alnum:]-]\\{1,21\\}$", 0);
 
     if (!regexec(&regex, str, 0, NULL, 0)) {
+        regfree(&regex);
         return true;
     }
     
+    regfree(&regex);
     return false;
 }
 
@@ -37,9 +41,11 @@ bool is_channel_id(string_t str) {
     regcomp(&regex, "^[[:alnum:]-]\\{1,21\\}$", 0);
 
     if (!regexec(&regex, str, 0, NULL, 0)) {
+        regfree(&regex);
         return true;
     }
     
+    regfree(&regex);
     return false;
 }
 
@@ -49,9 +55,11 @@ bool is_secret(string_t str) {
     regcomp(&regex, "^[[:alnum:]-]\\{1,129\\}$", 0);
 
     if (!regexec(&regex, str, 0, NULL, 0)) {
+        regfree(&regex);
         return true;
     }
     
+    regfree(&regex);
     return false;
 }
 
@@ -61,9 +69,11 @@ bool is_display_name(string_t str) {
     regcomp(&regex, "^[[:graph:]]\\{1,21\\}$", 0);
 
     if (!regexec(&regex, str, 0, NULL, 0)) {
+        regfree(&regex);
         return true;
     }
     
+    regfree(&regex);
     return false;
 }
 
@@ -72,9 +82,11 @@ bool is_message_content(string_t str) {
 
     regcomp(&regex, "^[[:print:]]\\{1,1401\\}$", 0);
 
-    if (!regexec(&regex, str, 0, NULL, 0)) {
+    if (!regexec(&regex, str, 0, NULL, 0)) {    
+        regfree(&regex);
         return true;
     }
     
+    regfree(&regex);
     return false;
 }

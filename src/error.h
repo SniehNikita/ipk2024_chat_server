@@ -27,7 +27,8 @@ typedef enum {
     error_serv_tcp_accpt_fail = 104,
     error_pars_tcp_parse_fail = 201,
     error_pars_tcp_no_crlf_ch = 202,
-    error_comp_tcp_no_confirm = 301,
+    error_pars_udp_parse_fail = 203,
+    error_comp_tcp_no_confirm = 301
 } error_code;
 
 int error_out(error_code errno, int lineno, char *file_name, char *msg);

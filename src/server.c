@@ -55,9 +55,9 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
     struct sockaddr_in new_addr;
     string_t str;
 
-    addr_in_size = sizeof(*client_addr);
     switch (protocol) {
         case e_tcp:
+            addr_in_size = sizeof(*client_addr);
             if ((*client_sockfd = accept(sockfd_tcp_welcome, (struct sockaddr *)client_addr, &addr_in_size)) == -1) {
                 return errno = error_out(error_serv_tcp_accpt_fail, __LINE__, __FILE__, NULL);        
         	}
@@ -85,19 +85,46 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
     return 0;
 }
 
-int server_read(queue_item_t * client, string_t * buf, int * size) {
+int server_read(queue_item_t * client, string_t * buf) {
     switch(client->data.client.protocol) {
         case e_tcp:
-            *size = recv(client->data.client.sockfd, *buf, sizeof(*buf), 0);
+            return recv(client->data.client.sockfd, *buf, sizeof(*buf), 0);
             break;
         case e_udp:
             uint32_t addr_in_size = sizeof(client->data.client.addr);
-            *size = recvfrom(client->data.client.sockfd, buf, sizeof(*buf), 0, (struct sockaddr *)(&(client->data.client.addr)), &addr_in_size);
+            return recvfrom(client->data.client.sockfd, buf, sizeof(*buf), 0, (struct sockaddr *)(&(client->data.client.addr)), &addr_in_size);
+            break;
+    }
+    return -1;
+}
+
+int server_read_sock(transport_protocol_t protocol, int sockfd, struct sockaddr_in * addr, string_t * buf) {
+    switch(protocol) {
+        case e_tcp:
+            return recv(sockfd, *buf, sizeof(*buf), 0);
+        case e_udp:
+            socklen_t l = sizeof(addr);
+            return recvfrom(sockfd, buf, sizeof(*buf), 0, (struct sockaddr *) addr, &l);
+    }
+    return -1;
+}
+
+int server_send(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, string_t buf, int buf_size) {
+    switch(protocol) {
+        case e_tcp:
+            send(sockfd, buf, buf_size, 0);
+            break;
+        case e_udp:
+        if (sendto(sockfd, buf, buf_size, 0, (struct sockaddr * ) &addr, sizeof(addr))
+            == -1)        {
+                        perror("socket");
+                    }
             break;
     }
     return 0;
 }
 
+// TODO split to client and socket
 int server_close_client(int fd) {
     close(fd);
     return 0;

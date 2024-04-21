@@ -20,6 +20,8 @@
 #include "argv.h"
 #include "server.h"
 #include "utils.h"
+#include "parse.h"
+#include "compose.h"
 
 /**
  * @brief Global error flag, should be set in case error occured with relevant error code 
@@ -50,13 +52,21 @@ int tcp_polling();
  */
 int udp_polling();
 
-/**
- * @brief Processing received message from clients
- * 
- * @param fd File descriptor with message
- * @return int Result code
- */
-int process_msg(int fd);
+int process_msg(queue_item_t * client, msg_t msg_in);
+
+int process_msg_sock(int fd);
+
+bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out);
+
+int forward_msg_all(queue_item_t * client, msg_t msg);
+
+int forward_msg_channel(queue_item_t * client, msg_t msg, channel_id_t channel);
+
+void send_error(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, message_content_t err_msg);
+
+void send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg);
+
+int read_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in * addr, msg_t * msg);
 
 /**
  * @brief Hadler for sigint signal
