@@ -16,8 +16,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "fsm.h"
-
 /**
  * @brief Number of welcome sockets
  */
@@ -98,10 +96,16 @@ typedef enum {
     e_udp = 1,
     e_tcp = 2
 } transport_protocol_t;
+
 /**
  * @brief Message ID uint type 
  */
 typedef uint16_t message_id_t;
+
+/**
+ * @brief ID uint type 
+ */
+typedef uint16_t id_t;
 
 /**
  * @brief Username string type 
@@ -148,6 +152,15 @@ typedef enum {
     e_err = 0xFE,
     e_bye = 0xFF
 } msg_type_t;
+
+typedef enum {
+    s_nu = 0, // NULL - Invalid state
+    s_ac = 1, // Accept
+    s_au = 2, // Auth
+    s_op = 3, // Open
+    s_er = 4, // Error
+    s_en = 5  // End
+} fsm_state_t;
 
 /**
  * @brief Content of confirm message 
@@ -220,6 +233,8 @@ typedef struct msg_t {
     msg_type_t type;
     message_id_t id;
     msg_data_t data;
+    int sockfd; // File descriptor where message was sent
+    struct sockaddr_in addr; // Address where message was sent
 } msg_t;
 
 /**
