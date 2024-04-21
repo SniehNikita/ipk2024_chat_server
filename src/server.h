@@ -59,10 +59,28 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
  * @param size Size of received message
  * @return int Result code
  */
-int server_read(queue_item_t * client, string_t * buf);
 
+/**
+ * @brief Reads message on socket
+ * 
+ * @param protocol Protocol which is being used
+ * @param sockfd Socked fd
+ * @param addr Pointer to address of message
+ * @param buf Message buffer
+ * @return int Result code
+ */
 int server_read_sock(transport_protocol_t protocol, int sockfd, struct sockaddr_in * addr, string_t * buf);
 
+/**
+ * @brief Sends message.
+ * 
+ * @param protocol Protocol which is being used
+ * @param sockfd Socked fd
+ * @param addr Address where to send message
+ * @param buf Message buffer
+ * @param buf_size Message buffer size 
+ * @return int Result code
+ */
 int server_send(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, string_t buf, int buf_size);
 
 /**

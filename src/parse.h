@@ -32,6 +32,13 @@ extern int errno;
  */
 int parse(transport_protocol_t protocol, string_t msg_in, int msg_in_size, msg_t * msg_out);
 
+/**
+ * @brief Parses TCP message
+ * 
+ * @param msg_in Received message
+ * @param msg_out Pointer to parsed message
+ * @return int Result code
+ */
 int parse_tcp(string_t msg_in, msg_t * msg_out);
 
 /**

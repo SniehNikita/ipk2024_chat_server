@@ -114,8 +114,21 @@ void msg_fill_error(msg_t * msg, display_name_t dname, message_content_t cont);
  */
 void msg_fill_reply(msg_t * msg, bool result, message_id_t ref_id, message_content_t cont);
 
+/**
+ * @brief Compares 2 clients
+ * 
+ * @param client1 Client 1 to compare
+ * @param client2 Client 2 to compare
+ * @return true Clients are the same
+ * @return false Clients are different
+ */
 bool cmp_clients(queue_item_t * client1, queue_item_t * client2);
 
+/**
+ * @brief Prints user-friendly message type to stdout
+ * 
+ * @param type Encoded message type
+ */
 void print_msg_type(msg_type_t type);
 
 #endif

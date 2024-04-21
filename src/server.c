@@ -85,19 +85,6 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
     return 0;
 }
 
-int server_read(queue_item_t * client, string_t * buf) {
-    switch(client->data.client.protocol) {
-        case e_tcp:
-            return recv(client->data.client.sockfd, *buf, sizeof(*buf), 0);
-            break;
-        case e_udp:
-            uint32_t addr_in_size = sizeof(client->data.client.addr);
-            return recvfrom(client->data.client.sockfd, buf, sizeof(*buf), 0, (struct sockaddr *)(&(client->data.client.addr)), &addr_in_size);
-            break;
-    }
-    return -1;
-}
-
 int server_read_sock(transport_protocol_t protocol, int sockfd, struct sockaddr_in * addr, string_t * buf) {
     switch(protocol) {
         case e_tcp:

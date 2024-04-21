@@ -52,28 +52,112 @@ int tcp_polling();
  */
 int udp_polling();
 
+/**
+ * @brief Does all pre-execution steps on message (like confirmation, state checks) and calls execution function.
+ * 
+ * @param client Client which sent message
+ * @param msg_in Message sent by client
+ * @return int Result code
+ */
 int process_msg(queue_item_t * client, msg_t msg_in);
 
+/**
+ * @brief Initiates processing of message received on given file descriptor
+ * 
+ * @param fd File descriptor with mesage
+ * @return int Result code
+ */
 int process_msg_sock(int fd);
 
+/**
+ * @brief Handles UDP timeout. Retransmitts messages than need to be retransmitted
+ * 
+ * @param interval Time interval passed from previous call
+ * @return int Result code
+ */
 int udp_timeout(int interval);
 
+/**
+ * @brief Executes message purpose
+ * 
+ * @param client Client which sent message
+ * @param msg_in Message received from client
+ * @param msg_out Answer to the client
+ * @return true Answer needs to be send
+ * @return false Answer doesn't need to be send
+ */
 bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out);
 
+/**
+ * @brief Forwards message to all clients except sender which are currently listen on this channel
+ * 
+ * @param client Sender of message
+ * @param msg Message to forward
+ * @param channel Channel where message should be forwarded
+ * @return int 
+ */
 int forward_msg_channel(queue_item_t * client, msg_t msg, channel_id_t channel);
 
+/**
+ * @brief Notifies all clients from client channel that he joined it
+ * 
+ * @param client Client which joined the channel
+ */
 void notify_join(queue_item_t * client);
 
+/**
+ * @brief Notifies all clients from client channel that he left it
+ * 
+ * @param client Client which left the channel
+ */
 void notify_leave(queue_item_t * client);
 
+/**
+ * @brief Generates and sends error message.
+ * 
+ * @param protocol Protocol to use in communication
+ * @param sockfd Socket where to send message
+ * @param addr Address where to send message
+ * @param err_msg Error message content
+ */
 void send_error(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, message_content_t err_msg);
 
+/**
+ * @brief Isolation point for message sending. Logs sent messages. Fills all common message data like ids, timeout, etc.
+ * 
+ * @param protocol Protocol to use in communication
+ * @param sockfd Socket where to send message
+ * @param addr Address where to send message
+ * @param msg Message to send
+ * @param is_retransmitted Is message retransmitted or it is sent for the first time (should it be saved in msg_out_buf queue) 
+ */
 void send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg, bool is_retransmitted);
 
+/**
+ * @brief Isolation point for message reading. Logs read messages.
+ * 
+ * @param protocol Protocol to use in communication
+ * @param sockfd Socket where to read message
+ * @param addr Address where to read message
+ * @param msg Pointer where to save message
+ * @return int 
+ */
 int read_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in * addr, msg_t * msg);
 
+/**
+ * @brief Prepares client to be deleted. Sends message about connection break.
+ * 
+ * @param client Client to be marked for deletion
+ * @return int Result code
+ */
 int close_client(queue_item_t * client);
 
+/**
+ * @brief Deletes client data
+ * 
+ * @param client Client to be deleted
+ * @return int Resutl code
+ */
 int delete_client(queue_item_t * client);
 
 /**

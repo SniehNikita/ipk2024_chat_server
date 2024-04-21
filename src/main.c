@@ -475,7 +475,7 @@ int close_client(queue_item_t * client) {
     return 0;
 }
 
-int delete_client(queue_item_t * client) {
+int delete_client(queue_item_t * client) { // TODO delete messages from msg_out_buf
     del_poll_fd(&pollfd, client->data.client.sockfd);
     queue_destroy_item(queue_remove(clients, client->id));
     return 0;
