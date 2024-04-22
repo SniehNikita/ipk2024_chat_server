@@ -53,7 +53,6 @@ int server_open() {
 int server_accept(transport_protocol_t protocol, int * client_sockfd, struct sockaddr_in * client_addr) {
     uint32_t addr_in_size;
     struct sockaddr_in new_addr;
-    string_t str;
 
     switch (protocol) {
         case e_tcp:
@@ -79,7 +78,6 @@ int server_accept(transport_protocol_t protocol, int * client_sockfd, struct soc
             if (bind(*client_sockfd, (struct sockaddr *) &new_addr, sizeof(new_addr)) < 0) {
                 return errno = error_out(error_serv_addr_bind_fail, __LINE__, __FILE__, NULL);
             }
-            memset(&str, '\0', sizeof(str));
             break;
     }
     return 0;
@@ -99,14 +97,9 @@ int server_read_sock(transport_protocol_t protocol, int sockfd, struct sockaddr_
 int server_send(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, string_t buf, int buf_size) {
     switch(protocol) {
         case e_tcp:
-            send(sockfd, buf, buf_size, 0);
-            break;
+            return sendto(sockfd, buf, strlen(buf), 0, (struct sockaddr * ) &addr, sizeof(addr));
         case e_udp:
-        if (sendto(sockfd, buf, buf_size, 0, (struct sockaddr * ) &addr, sizeof(addr))
-            == -1)        {
-                        perror("socket");
-                    }
-            break;
+            return sendto(sockfd, buf, buf_size, 0, (struct sockaddr * ) &addr, sizeof(addr));
     }
     return 0;
 }
