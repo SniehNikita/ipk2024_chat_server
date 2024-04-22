@@ -40,16 +40,11 @@ uint32_t client_cnt = 0;
 uint32_t msg_cnt = 0;
 
 int main(int argc, char **argv_in) {
-    // string_t s = "BYE\r\n";
-    // msg_t m;
-    // memset(&m, '\0', sizeof(m));
-    // parse_tcp(s, &m);
-    // return 0;
-
-
     clients = NULL;
     msg_out_buf = NULL;
-    signal(SIGINT, sigintHandler);
+    signal(SIGINT, sigint_handler);
+    // Ignore sigpipe since server will get alot of them
+    signal(SIGPIPE, SIG_IGN);
     parse_argv(argc, argv_in, &argv);
 
     if (argv.is_help) {
@@ -124,16 +119,6 @@ int tcp_polling() {
     if (server_accept(e_tcp, &fd_accept, &client_addr)) {
         return errno;
     }
-    client = get_client_by_addr(clients, client_addr);
-    if (client != NULL) {
-        // Client already exists. Notify him about that
-        message_content_t err_msg;
-        memset(&err_msg, '\0', sizeof(err_msg));
-        memcpy(&err_msg, "This address is currently in use.", 37);
-        send_error(e_tcp, fd_accept, client_addr, err_msg);
-        return 0;
-    }
-    // Not exist ? create client and save fd
     if (add_poll_fd(&pollfd, fd_accept, e_tcp)) {
         // If failed -> cannot get connection, error message should be sent to client
         // Accepted socket won't saved
@@ -160,7 +145,6 @@ int tcp_polling() {
     client->data.client.state = s_ac; // Accept
     client->data.client.addr = client_addr;
     queue_add(clients, client);
-
     // FD and Address are saved -> message will be proccessed withing next polling event
     return 0;
 }
@@ -299,7 +283,7 @@ int process_msg_sock(int fd) {
     // While to ensure that multiple tcp messages received in one packet will be processed
     while (get_client_by_fd(clients, fd) != NULL && (buf_size = read_msg(client->data.client.protocol, client->data.client.sockfd, &client->data.client.addr, &msg)) != -1) {
         if (buf_size == -1) {
-            // No message on socket or parse broke (message was sent)
+            // No message on socket or parse broke (message was sent) or message was with FIN and communication is closed
             break;
         }
         process_msg(client, msg);
@@ -315,13 +299,16 @@ int process_msg(queue_item_t * client, msg_t msg_in) {
     // If UDP -> send confirm
     if (client->data.client.protocol == e_udp && msg_in.type != e_confirm) {
         msg_t conf;
-        string_t resp;
-        int resp_size;
         memset(&conf, '\0', sizeof(conf));
         conf.type = e_confirm;
         conf.data.confirm.ref_id = msg_in.id;
-        compose(e_udp, conf, &resp, &resp_size);
         send_msg(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, conf, false);
+        if (is_msg_confirmed(client, msg_in.id)) {
+            // Message was already processed
+            return 0;
+        }
+        client->data.client.msg_in_confirmed[client->data.client.msg_count % MAX_CONFIRMED_MSG] = msg_in.id;
+        client->data.client.msg_count++;
     }
     // If client is in end state -> accept only confirms and bye, otherwise send error
     if (client->data.client.state == s_en && (msg_in.type != e_confirm || msg_in.type != e_bye)) {
@@ -378,13 +365,19 @@ bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out) {
         case e_auth:
             msg_out->type = e_reply;
             msg_out->data.reply.ref_id = msg_in.id;
-            msg_out->data.reply.result = true;
-            memcpy(&(client->data.client.username), msg_in.data.auth.username, sizeof(msg_in.data.auth.username));
-            memcpy(&(client->data.client.display_name), msg_in.data.auth.display_name, sizeof(msg_in.data.auth.display_name));
-            memcpy(&(client->data.client.channel_id), "default", 8);
-            memcpy(&(msg_out->data.reply.content), "Joined default channel.", 24);
-            notify_join(client); // Notify other clients about join
-            client->data.client.state = s_op;
+            if (client->data.client.state == s_op || client->data.client.state == s_er) {
+                // If already authorized -> send nok reply with corresponding message
+                msg_out->data.reply.result = false;
+                snprintf((char *)&(msg_out->data.reply.content), sizeof(msg_out->data.reply.content), "User is already authorized as %s", client->data.client.display_name);
+            } else {
+                msg_out->data.reply.result = true;
+                memcpy(&(client->data.client.username), msg_in.data.auth.username, sizeof(msg_in.data.auth.username));
+                memcpy(&(client->data.client.display_name), msg_in.data.auth.display_name, sizeof(msg_in.data.auth.display_name));
+                memcpy(&(client->data.client.channel_id), "default", 8);
+                memcpy(&(msg_out->data.reply.content), "Joined default channel.", 24);
+                notify_join(client); // Notify other clients about join
+                client->data.client.state = s_op;
+            }
             return true;
         case e_join:
             notify_leave(client); // Leave before name change            
@@ -456,16 +449,6 @@ bool check_state_transition(queue_item_t * client, msg_t msg) {
             return false;
         }
     }
-    // Already authorized
-    if (client->data.client.state == s_op || client->data.client.state == s_er) {
-        if (msg.type == e_auth) {
-            message_content_t err_msg;
-            memset(&err_msg, '\0', sizeof(err_msg));
-            memcpy(&err_msg, "Client is already authorized.", 30);
-            send_error(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, err_msg);
-            return false;
-        }
-    }
     // End of communication
     if (client->data.client.state == s_en) {
         if (msg.type != e_bye && msg.type != e_confirm) {
@@ -498,20 +481,30 @@ void send_error(transport_protocol_t protocol, int sockfd, struct sockaddr_in ad
     memset(&msg, '\0', sizeof(msg));
     msg.type = e_err;
     memcpy(&(msg.data.err.display_name), "Server", 6);
-    memcpy(&(msg.data.err.content), err_msg, sizeof(*err_msg));
+    memcpy(&(msg.data.err.content), err_msg, strlen(err_msg));
     send_msg(protocol, sockfd, addr, msg, false);
 }
 
-void send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg, bool is_retransmitted) {
+int send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg, bool is_retransmitted) {
     string_t buf;
     int buf_size = 0;
     message_id_t id;
+    
+    memset(&buf, '\0', sizeof(buf));
     if (!is_retransmitted) {
         id = msg_cnt++;
         msg.id = id;
     }
+    
     compose(protocol, msg, &buf, &buf_size);
-    server_send(protocol, sockfd, addr, buf, buf_size);
+    if (server_send(protocol, sockfd, addr, buf, buf_size) == -1) {
+        if (protocol == e_tcp) {
+            // SIGPIPE occured or something else went wrong and client does not exist anymore
+            close_client(get_client_by_fd(clients, sockfd));
+            return 0;
+        }
+    }
+    // server_send(protocol, sockfd, addr, "Hey", 3);
     fprintf(stdout, "SENT %s:%d | ", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
     print_msg_type(msg.type);
     fprintf(stdout, "\n");
@@ -530,12 +523,19 @@ void send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr
         item->data.msg.is_confirmed = false;
         queue_add(msg_out_buf, item);
     }
+    return 0;
 }
 
 int read_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in * addr, msg_t * msg) {
     string_t buf;
     int buf_size = 0;
+    memset(&buf, '\0', sizeof(buf));
     buf_size = server_read_sock(protocol, sockfd, addr, &buf);
+    if (protocol == e_tcp && buf_size == 0) {
+        // Unexpected end of communication (Received FIN without BYE)
+        close_client(get_client_by_fd(clients, sockfd));
+        return -1;
+    }
     if (buf_size != -1) {
         if (parse(protocol, buf, buf_size, msg)) {
             // Parse failed
@@ -543,6 +543,7 @@ int read_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in * add
             memset(&err_msg, '\0', sizeof(err_msg));
             memcpy(&err_msg, "Received message contains error.", 33);
             send_error(protocol, sockfd, *addr, err_msg);
+            return -1;
         }
         fprintf(stdout, "RECV %s:%d | ", inet_ntoa(addr->sin_addr), ntohs(addr->sin_port));
         print_msg_type(msg->type);
@@ -582,9 +583,12 @@ int delete_client(queue_item_t * client) { // TODO delete messages from msg_out_
     return 0;
 }
 
-void sigintHandler(int signal) {
+void sigint_handler(int signal) {
     signal = signal; // TODO rm?
     stop(0);
+}
+
+void sigpipe_handler(int signal) {
 }
 
 void stop(int exit_code) {

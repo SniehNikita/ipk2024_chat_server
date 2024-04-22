@@ -141,8 +141,9 @@ void send_error(transport_protocol_t protocol, int sockfd, struct sockaddr_in ad
  * @param addr Address where to send message
  * @param msg Message to send
  * @param is_retransmitted Is message retransmitted or it is sent for the first time (should it be saved in msg_out_buf queue) 
+ * @return int Result code
  */
-void send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg, bool is_retransmitted);
+int send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg, bool is_retransmitted);
 
 /**
  * @brief Isolation point for message reading. Logs read messages.
@@ -176,7 +177,14 @@ int delete_client(queue_item_t * client);
  * 
  * @param signal Signal received from the system
  */
-void  sigintHandler(int signal);
+void  sigint_handler(int signal);
+
+/**
+ * @brief Hadler for sigpipe signal
+ * 
+ * @param signal Signal received from the system
+ */
+void  sigpipe_handler(int signal);
 
 /**
  * @brief Exits as standard exit() function but with freeing of memory

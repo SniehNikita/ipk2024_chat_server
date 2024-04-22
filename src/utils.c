@@ -89,37 +89,30 @@ int add_poll_fd(pollfd_list_t * pollfd, int new_fd, transport_protocol_t prot) {
 }
 
 int del_poll_fd(pollfd_list_t * pollfd, int fd) {
-    int i = WELCOME_SOCK_COUNT;
-    int i1 = 0;
-    int i2 = 0;
-    while (i < pollfd->size && (!i1 || !i2)) {
-        if (fd == pollfd->pollfd_list[i].fd) {
-            i1 = i;
-        }
-        if (pollfd->pollfd_list[i].fd == 0) {
-            i2 = i;
-        }
-        i++;
-    }
-    if (i1 == 0) {
-        close(pollfd->pollfd_list[i].fd); // Close file descriptor
-        // Not found -> does not exist
-        return 0; 
-    }
-    if (i2 == 0) {
-        i2 = pollfd->size - 1;
-    } else {
-        i2--;
-        if (i2 == WELCOME_SOCK_COUNT - 1) {
-            i2 = i1;
+    bool is_found = false;
+    int offset = 1;
+    int j = WELCOME_SOCK_COUNT;
+
+    for (int i = WELCOME_SOCK_COUNT; i < pollfd->cnt + WELCOME_SOCK_COUNT; i++) {
+        if (pollfd->pollfd_list[i].fd == fd) {
+            is_found = true;
+            pollfd->pollfd_list[i].fd = -1;
         }
     }
-    close(pollfd->pollfd_list[i].fd); // Close file descriptor
-    pollfd->pollfd_list[i1].fd = pollfd->pollfd_list[i2].fd;
-    pollfd->protocol[i1] = pollfd->protocol[i2];
-    pollfd->pollfd_list[i2].fd = 0;
-    pollfd->protocol[i2] = 0;
-    pollfd->cnt--;
+    if (is_found) {
+        close(fd);
+    }
+    while (j < WELCOME_SOCK_COUNT + pollfd->cnt) {
+        if (pollfd->pollfd_list[j].fd == -1) {
+            pollfd->cnt--;
+            if (j+offset < pollfd->size) {
+                pollfd->pollfd_list[j].fd = pollfd->pollfd_list[j+offset].fd;
+                pollfd->protocol[j] = pollfd->protocol[j+offset];
+                offset++;
+            }
+        }
+        j++;
+    }
     return 0;
 }
 
@@ -158,6 +151,21 @@ bool cmp_clients(queue_item_t * client1, queue_item_t * client2) {
     }
 
     return true;
+}
+
+bool is_msg_confirmed(queue_item_t * client, message_id_t id) {
+    int index = client->data.client.msg_count - 1;
+
+    if (client->data.client.msg_count == 0) {
+        return false;
+    }
+    while (index >= 0 && index % MAX_CONFIRMED_MSG != client->data.client.msg_count % MAX_CONFIRMED_MSG) {
+        if (client->data.client.msg_in_confirmed[index % MAX_CONFIRMED_MSG] == id) {
+            return true;
+        }
+        index =  index - 1;
+    }
+    return false;
 }
 
 void print_msg_type(msg_type_t type) {

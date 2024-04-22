@@ -23,7 +23,7 @@
 /**
  * @brief Number which will be added to poll when realloced
  */
-#define POLL_REALLOC_DELTA 16
+#define POLL_REALLOC_DELTA 2
 
 // Poll interval in miliseconds
 #define POLL_INTERVAL 125
