@@ -87,11 +87,10 @@ int main(int argc, char **argv_in) {
     pollfd.pollfd_list[1].events = POLLIN;
 
     while (true) {
-        int a;
         int next_timeout = get_next_timeout(msg_out_buf);
         next_timeout = next_timeout > POLL_INTERVAL ? POLL_INTERVAL : next_timeout;
         next_timeout = next_timeout == 0 ? POLL_INTERVAL : next_timeout;
-        if ((a = poll(pollfd.pollfd_list, WELCOME_SOCK_COUNT + pollfd.cnt, next_timeout)) > 0) {
+        if (poll(pollfd.pollfd_list, WELCOME_SOCK_COUNT + pollfd.cnt, next_timeout) > 0) {
             // TCP Welcome
             if (pollfd.pollfd_list[0].revents & POLLIN) {
                 tcp_polling();
@@ -119,36 +118,50 @@ int tcp_polling() {
     queue_item_t * client;
     int fd_accept = 0;
 
+    memset(&client_addr, '\0', sizeof(client_addr));
+
+    // Create new file descriptor
     if (server_accept(e_tcp, &fd_accept, &client_addr)) {
         return errno;
     }
     client = get_client_by_addr(clients, client_addr);
     if (client != NULL) {
         // Client already exists. Notify him about that
-        // TODO send smth
+        message_content_t err_msg;
+        memset(&err_msg, '\0', sizeof(err_msg));
+        memcpy(&err_msg, "This address is currently in use.", 37);
+        send_error(e_tcp, fd_accept, client_addr, err_msg);
         return 0;
     }
     // Not exist ? create client and save fd
     if (add_poll_fd(&pollfd, fd_accept, e_tcp)) {
         // If failed -> cannot get connection, error message should be sent to client
         // Accepted socket won't saved
-        // TODO send reply/error to new_fd fd
+        message_content_t err_msg;
+        memset(&err_msg, '\0', sizeof(err_msg));
+        memcpy(&err_msg, "Connection could not be established.", 37);
+        send_error(e_tcp, fd_accept, client_addr, err_msg);
         return 0;
-    }
-    // Fd added to pollfd list
-    // TODO read welcome message and process it
+    } // Fd added to pollfd list
+
     client = queue_create_item();
     if (client == NULL) {
-        // TODO read/clear fd to not block process
+        message_content_t err_msg;
+        memset(&err_msg, '\0', sizeof(err_msg));
+        memcpy(&err_msg, "Connection could not be established.", 37);
+        send_error(e_tcp, fd_accept, client_addr, err_msg);
+        server_close_client(fd_accept);
         return errno;
     }
     client->data.client.sockfd = fd_accept;
     client->id = client_cnt++;
     client->data.client.protocol = e_tcp;
-    client->data.client.addr = client_addr;
     client->data.client.msg_count = 0;
+    client->data.client.state = s_ac; // Accept
+    client->data.client.addr = client_addr;
     queue_add(clients, client);
 
+    // FD and Address are saved -> message will be proccessed withing next polling event
     return 0;
 }
 
@@ -171,7 +184,10 @@ int udp_polling() {
     // buf_size = server_read_sock(e_udp, get_udp_socket(), &client_addr, &buf);
     buf_size = read_msg(e_udp, get_udp_socket(), &client_addr, &msg);
     if (buf_size == -1) {
-        // TODO smth wrong
+        // Something went wrong:
+        // 1. No message -> skip
+        // 2. Parse failed -> message was already sent
+        close(fd_accept);
         return 0;
     }
 
@@ -180,7 +196,7 @@ int udp_polling() {
         // Client already exists. Notify him about that
         message_content_t err_msg;
         memset(&err_msg, '\0', sizeof(err_msg));
-        memcpy(&err_msg, "This address is currently in use.", 37);
+        memcpy(&err_msg, "This address is currently in use.", 34);
         send_error(e_udp, fd_accept, client_addr, err_msg);
         return 0;
     }
@@ -212,30 +228,58 @@ int udp_polling() {
     client->data.client.addr = client_addr;
     queue_add(clients, client);
 
-
     // FD and Address are saved -> read and process the message 
     return process_msg(client, msg);
 }
 
 int udp_timeout(int interval) {
     queue_item_t * item = queue_first(msg_out_buf);
+    // Pointers to clients that need to be destructed
+    queue_item_t * clnt_dstr[queue_length(clients)];
+    int clnt_size = 0;
 
     while (item != NULL) {
         item->data.msg.timeout -= interval;
 
         if (item->data.msg.timeout <= 0 && !item->data.msg.is_confirmed) {
             // If message timed out -> retry
-            if (item->data.msg.retry_count <= argv.udp_retransmissions) {
+            if (item->data.msg.retry_count < argv.udp_retransmissions) {
                 // If retransmission not exceeded
                 send_msg(e_udp, item->data.msg.sockfd, item->data.msg.addr, item->data.msg, true);
+                item->data.msg.retry_count++;
+                item->data.msg.timeout = argv.udp_timeout;
             } else {
-                // TODO close client
+                // To many retransmissions
+                // Check if client is already in queue for destruction
+                bool is_in_dstr = false;
+                for (int i = 0; i < clnt_size; i++) {
+                    if (clnt_dstr[i] != NULL && clnt_dstr[i]->data.client.sockfd == item->data.msg.sockfd) {
+                        is_in_dstr = true;
+                    }
+                }
+                if (!is_in_dstr) {
+                    // Not found -> add
+                    clnt_dstr[clnt_size++] = get_client_by_fd(clients, item->data.msg.sockfd);
+                }
             }
-            item->data.msg.retry_count++;
         }
 
         item = queue_next(item);
     }
+    // Delete all saved clients
+    for (int i = 0; i < clnt_size; i++) {
+        queue_item_t * client = clnt_dstr[i];
+        if (client != NULL) {
+            if (client->data.client.state != s_en) {
+                // Client was not previosly closed
+                close_client(client);
+                notify_leave(client);
+            } else {
+                // Client was already closed
+                delete_client(client);
+            }
+        }
+    } 
 
     return 0;
 }
@@ -247,17 +291,20 @@ int process_msg_sock(int fd) {
     
     client = get_client_by_fd(clients, fd);
     if (client == NULL) {
-        // Something went terribly wrong...
-        // TODO send bye message to socket, close connection, delete fd
+        // Delete fd from poll list
+        del_poll_fd(&pollfd, fd);
         return errno = error_out(error_fatl_client_missing, __LINE__, __FILE__, NULL); 
     }
     memset(&msg, '\0', sizeof(msg));
-    buf_size = read_msg(client->data.client.protocol, client->data.client.sockfd, &client->data.client.addr, &msg);
-    if (buf_size == -1) {
-        // No message
-        return 0;
+    // While to ensure that multiple tcp messages received in one packet will be processed
+    while (get_client_by_fd(clients, fd) != NULL && (buf_size = read_msg(client->data.client.protocol, client->data.client.sockfd, &client->data.client.addr, &msg)) != -1) {
+        if (buf_size == -1) {
+            // No message on socket or parse broke (message was sent)
+            break;
+        }
+        process_msg(client, msg);
+        memset(&msg, '\0', sizeof(msg)); // Clear message before next possible use
     }
-    process_msg(client, msg);
 
     return 0;
 }
@@ -284,7 +331,10 @@ int process_msg(queue_item_t * client, msg_t msg_in) {
         send_error(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, err_msg);
         return 0;
     }
-    if (execute_msg(client, msg_in, &msg_out)) {
+    if (!check_state_transition(client, msg_in)) {
+        // If client used forbidden message from his communication state -> close with error
+        client->data.client.state = s_er;
+    } else if (execute_msg(client, msg_in, &msg_out)) {
         // If response should be sent
         send_msg(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, msg_out, false);
     }
@@ -356,7 +406,7 @@ bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out) {
             return false;
         case e_err: break;
         case e_bye:
-            notify_leave(client);            
+            notify_leave(client);
             client->data.client.state = s_en;
             delete_client(client);
             return false;
@@ -391,6 +441,40 @@ int forward_msg_channel(queue_item_t * client, msg_t msg, channel_id_t channel) 
     return 0;
 }
 
+bool check_state_transition(queue_item_t * client, msg_t msg) {
+    // Not authorized
+    if (client->data.client.state == s_ac || client->data.client.state == s_au) {
+        if (msg.type != e_confirm && msg.type != e_auth) {
+            message_content_t err_msg;
+            memset(&err_msg, '\0', sizeof(err_msg));
+            memcpy(&err_msg, "Client is not yet authorized.", 30);
+            send_error(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, err_msg);
+            if (msg.type == e_bye) {
+                // If bye -> process it anyway
+                return true;
+            }
+            return false;
+        }
+    }
+    // Already authorized
+    if (client->data.client.state == s_op || client->data.client.state == s_er) {
+        if (msg.type == e_auth) {
+            message_content_t err_msg;
+            memset(&err_msg, '\0', sizeof(err_msg));
+            memcpy(&err_msg, "Client is already authorized.", 30);
+            send_error(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, err_msg);
+            return false;
+        }
+    }
+    // End of communication
+    if (client->data.client.state == s_en) {
+        if (msg.type != e_bye && msg.type != e_confirm) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void notify_join(queue_item_t * client) {
     msg_t not;
     memset(&not, '\0', sizeof(not));
@@ -411,6 +495,7 @@ void notify_leave(queue_item_t * client) {
 
 void send_error(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, message_content_t err_msg) {
     msg_t msg;
+    memset(&msg, '\0', sizeof(msg));
     msg.type = e_err;
     memcpy(&(msg.data.err.display_name), "Server", 6);
     memcpy(&(msg.data.err.content), err_msg, sizeof(*err_msg));
@@ -420,8 +505,11 @@ void send_error(transport_protocol_t protocol, int sockfd, struct sockaddr_in ad
 void send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg, bool is_retransmitted) {
     string_t buf;
     int buf_size = 0;
-    message_id_t id = msg_cnt++;
-    msg.id = id;
+    message_id_t id;
+    if (!is_retransmitted) {
+        id = msg_cnt++;
+        msg.id = id;
+    }
     compose(protocol, msg, &buf, &buf_size);
     server_send(protocol, sockfd, addr, buf, buf_size);
     fprintf(stdout, "SENT %s:%d | ", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
@@ -467,6 +555,7 @@ int close_client(queue_item_t * client) {
     msg_t msg;
     memset(&msg, '\0', sizeof(msg));
     msg.type = e_bye;
+    client->data.client.state = s_en;
     send_msg(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, msg, false);
     if (client->data.client.protocol == e_tcp) {
         delete_client(client);
@@ -476,6 +565,18 @@ int close_client(queue_item_t * client) {
 }
 
 int delete_client(queue_item_t * client) { // TODO delete messages from msg_out_buf
+    queue_item_t * item = queue_first(msg_out_buf);
+    id_t id = 0;
+    while (item != NULL) {
+        // Delete all buffered messages related to this client
+        if (item->data.msg.sockfd == client->data.client.sockfd) {
+            id = item->id;
+            item = queue_next(item);
+            queue_destroy_item(queue_remove(msg_out_buf, id));
+        } else {
+            item = queue_next(item);
+        }
+    }
     del_poll_fd(&pollfd, client->data.client.sockfd);
     queue_destroy_item(queue_remove(clients, client->id));
     return 0;

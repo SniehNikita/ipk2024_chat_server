@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <poll.h>
+#include <unistd.h> 
 
 #include "types.h"
 #include "queue.h"
@@ -97,6 +98,16 @@ bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out);
  * @return int 
  */
 int forward_msg_channel(queue_item_t * client, msg_t msg, channel_id_t channel);
+
+/**
+ * @brief Checks if message can be executed within current client state. If no -> sends error to client
+ * 
+ * @param client Sender of message
+ * @param msg Message received
+ * @return true Message can be executed
+ * @return false Message cannot be executed
+ */
+bool check_state_transition(queue_item_t * client, msg_t msg);
 
 /**
  * @brief Notifies all clients from client channel that he joined it

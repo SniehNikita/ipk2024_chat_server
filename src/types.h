@@ -154,7 +154,7 @@ typedef enum {
 } msg_type_t;
 
 typedef enum {
-    s_nu = 0, // NULL - Invalid state
+    // s_nu = 0, // NULL - Invalid state
     s_ac = 1, // Accept
     s_au = 2, // Auth
     s_op = 3, // Open

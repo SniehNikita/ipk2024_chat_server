@@ -102,6 +102,7 @@ int del_poll_fd(pollfd_list_t * pollfd, int fd) {
         i++;
     }
     if (i1 == 0) {
+        close(pollfd->pollfd_list[i].fd); // Close file descriptor
         // Not found -> does not exist
         return 0; 
     }
