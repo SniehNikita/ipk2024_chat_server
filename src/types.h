@@ -26,7 +26,12 @@
 #define POLL_REALLOC_DELTA 2
 
 // Poll interval in miliseconds
-#define POLL_INTERVAL 125
+#define POLL_INTERVAL 75
+
+/**
+ * @brief Exit timeout to maybe receive more messages
+ */
+#define STOP_TIMEOUT 500
 
 /**
  * @brief Maximum length of IPV4 address 

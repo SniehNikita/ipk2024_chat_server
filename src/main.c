@@ -39,6 +39,16 @@ uint32_t client_cnt = 0;
  */
 uint32_t msg_cnt = 0;
 
+/**
+ * @brief If true -> server is closing all connections 
+ */
+bool stop_flag = false;
+
+/**
+ * @brief Exit timeout to maybe receive more messages
+ */
+int stop_timeout = STOP_TIMEOUT;
+
 int main(int argc, char **argv_in) {
     clients = NULL;
     msg_out_buf = NULL;
@@ -101,6 +111,15 @@ int main(int argc, char **argv_in) {
             }
         } else {
             // If nothing received within poll interval -> calculate timeout
+            if (stop_flag && queue_length(msg_out_buf) == 0) {
+                if (stop_timeout <= 0) {
+                    stop(0);
+                } else {
+                    stop_timeout -= next_timeout;
+                }
+            } else {
+                stop_timeout = STOP_TIMEOUT;
+            }
             udp_timeout(next_timeout);
         }
     }
@@ -263,7 +282,8 @@ int udp_timeout(int interval) {
                 delete_client(client);
             }
         }
-    } 
+    }
+
 
     return 0;
 }
@@ -310,12 +330,12 @@ int process_msg(queue_item_t * client, msg_t msg_in) {
         client->data.client.msg_in_confirmed[client->data.client.msg_count % MAX_CONFIRMED_MSG] = msg_in.id;
         client->data.client.msg_count++;
     }
+    if (stop_flag && msg_in.type != e_confirm && msg_in.type != e_bye) {
+        // If server is being stopped -> execute only confirm and bye
+        return 0;
+    }
     // If client is in end state -> accept only confirms and bye, otherwise send error
-    if (client->data.client.state == s_en && (msg_in.type != e_confirm || msg_in.type != e_bye)) {
-        message_content_t err_msg;
-        memset(&err_msg, '\0', sizeof(err_msg));
-        memcpy(&err_msg, "Client was already closed.", 27);
-        send_error(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, err_msg);
+    if (client->data.client.state == s_en && msg_in.type != e_confirm && msg_in.type != e_bye) {
         return 0;
     }
     if (!check_state_transition(client, msg_in)) {
@@ -327,6 +347,10 @@ int process_msg(queue_item_t * client, msg_t msg_in) {
     }
     if (msg_in.type == e_bye) {
         // In case BYE received client is already destroyed
+        return 0;
+    }
+    if (msg_in.type == e_confirm) {
+        // In case confirm received client is might be destroyed but certainly not in error state
         return 0;
     }
     if (client->data.client.state == s_er) {
@@ -341,15 +365,12 @@ bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out) {
     switch (msg_in.type) {
         case e_confirm:
             queue_item_t * item = queue_get(msg_out_buf, msg_in.data.confirm.ref_id);
-            queue_item_t * t = queue_first(msg_out_buf);
-            while (t != NULL) {
-                t = queue_next(t);
-            }
             if (item != NULL) {
                 item->data.msg.is_confirmed = true;
                 if (item->data.msg.type == e_bye) {
                     // If confirmed server bye message -> delete client. Confirmed message will be deleted with all user data
-                    delete_client(client);
+                    queue_destroy_item(queue_remove(msg_out_buf, msg_in.data.confirm.ref_id));
+                    close_client(client);
                 } else {
                     // Else just destroy confirmed message
                     queue_destroy_item(queue_remove(msg_out_buf, msg_in.data.confirm.ref_id));
@@ -399,9 +420,11 @@ bool execute_msg(queue_item_t * client, msg_t msg_in, msg_t * msg_out) {
             return false;
         case e_err: break;
         case e_bye:
-            notify_leave(client);
-            client->data.client.state = s_en;
-            delete_client(client);
+            if (client != NULL) {
+                notify_leave(client);
+                client->data.client.state = s_en;
+                close_client(client);
+            }
             return false;
     }
     return false;
@@ -553,11 +576,13 @@ int read_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in * add
 }
 
 int close_client(queue_item_t * client) {
-    msg_t msg;
-    memset(&msg, '\0', sizeof(msg));
-    msg.type = e_bye;
-    client->data.client.state = s_en;
-    send_msg(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, msg, false);
+    if (client->data.client.state != s_en) {
+        msg_t msg;
+        memset(&msg, '\0', sizeof(msg));
+        msg.type = e_bye;
+        client->data.client.state = s_en;
+        send_msg(client->data.client.protocol, client->data.client.sockfd, client->data.client.addr, msg, false);
+    }
     if (client->data.client.protocol == e_tcp) {
         delete_client(client);
     }
@@ -568,6 +593,7 @@ int close_client(queue_item_t * client) {
 int delete_client(queue_item_t * client) { // TODO delete messages from msg_out_buf
     queue_item_t * item = queue_first(msg_out_buf);
     id_t id = 0;
+
     while (item != NULL) {
         // Delete all buffered messages related to this client
         if (item->data.msg.sockfd == client->data.client.sockfd) {
@@ -584,11 +610,18 @@ int delete_client(queue_item_t * client) { // TODO delete messages from msg_out_
 }
 
 void sigint_handler(int signal) {
-    signal = signal; // TODO rm?
-    stop(0);
-}
-
-void sigpipe_handler(int signal) {
+    queue_item_t * item = queue_first(clients);
+    queue_item_t * next;
+    signal = signal;
+    stop_flag = true;
+    
+    while (item != NULL) {
+        next = queue_next(item);
+        if (item->data.client.state != s_en) {
+            close_client(item);
+        }
+        item = next;
+    }
 }
 
 void stop(int exit_code) {
@@ -599,7 +632,7 @@ void stop(int exit_code) {
         queue_destroy(msg_out_buf);
     }
     server_close();
-    for (int i = WELCOME_SOCK_COUNT; i < pollfd.size; i++) {
+    for (int i = WELCOME_SOCK_COUNT; i < pollfd.cnt + WELCOME_SOCK_COUNT; i++) {
         if (pollfd.pollfd_list[i].fd != 0) {
             close(pollfd.pollfd_list[i].fd);
         }
