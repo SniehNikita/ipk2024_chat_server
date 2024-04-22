@@ -45,6 +45,8 @@ OBJS = 	objs/main.o \
 		objs/parse.o \
 		objs/compose.o
 
+DOCS =	docs/server_flow.png
+
 .PHONY: all
 
 all: clear build
@@ -70,4 +72,4 @@ clear:
 
 zip:
 	rm -f $(ZIP_NAME)
-	zip $(ZIP_NAME) $(SRCS) $(HEADS) $(DOCDIR) Makefile README.md CHANGELOG.md LICENSE
+	zip $(ZIP_NAME) $(SRCS) $(HEADS) $(DOCS) Makefile README.md CHANGELOG.md LICENSE
