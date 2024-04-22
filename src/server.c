@@ -104,7 +104,6 @@ int server_send(transport_protocol_t protocol, int sockfd, struct sockaddr_in ad
     return 0;
 }
 
-// TODO split to client and socket
 int server_close_client(int fd) {
     close(fd);
     return 0;

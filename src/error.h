@@ -15,8 +15,6 @@
 #include "types.h"
 #include "error.h"
 
-#define DEBUG // TODO remove
-
 typedef enum {
     error_argv_malformed_argv = 1,
     error_memo_mem_alloc_fail = 2,

@@ -449,7 +449,6 @@ int forward_msg_channel(queue_item_t * client, msg_t msg, channel_id_t channel) 
             send_msg(item->data.client.protocol, item->data.client.sockfd, item->data.client.addr, msg, false);
         } else {
             send_msg(item->data.client.protocol, item->data.client.sockfd, item->data.client.addr, msg, false);
-            // TODO add msg to queue
         }
         item = queue_next(item);
     }

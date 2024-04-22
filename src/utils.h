@@ -124,6 +124,14 @@ void msg_fill_reply(msg_t * msg, bool result, message_id_t ref_id, message_conte
  */
 bool cmp_clients(queue_item_t * client1, queue_item_t * client2);
 
+/**
+ * @brief Checks if message was confirmed
+ * 
+ * @param client Receiver of message
+ * @param id Id of message
+ * @return true Confirmed
+ * @return false Not confirmed
+ */
 bool is_msg_confirmed(queue_item_t * client, message_id_t id);
 
 /**
