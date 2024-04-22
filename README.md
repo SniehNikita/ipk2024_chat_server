@@ -124,9 +124,13 @@ Testing was done manualy using my implementation of client from Project 1 and nc
 Server was running in Nix environment
 
 ##### Test case 1: Normal - Client shutdown
+
 Testing: 1 UDP client + 1 TCP client, clients shutdown first
+
 Result: OK
+
 Wireshark: OK
+
 Valgrind: OK
 
 ```
@@ -211,9 +215,13 @@ Valgrind:
 ```
 
 ##### Test case 2: Normal - Server shutdown
+
 Testing: 3 UDP clients + 3 TCP clients, server shutdown first
+
 Result: OK
+
 Wireshark: OK
+
 Valgrind: OK
 
 ```
@@ -430,9 +438,15 @@ Valgrind:
 ```
 
 ##### Test case 3: Normal - Channel switch, Rename
+
 Testing: 1 UDP client + 1 TCP client, channel switching
+
 Result: OK
+
+Wireshark: OK
+
 Valgrind: OK
+
 
 ```
 valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./ipk24chat-server -l 127.0.0.1 -p 4567 -d 250 -r 3
