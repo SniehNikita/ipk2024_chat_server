@@ -511,7 +511,7 @@ void send_error(transport_protocol_t protocol, int sockfd, struct sockaddr_in ad
 int send_msg(transport_protocol_t protocol, int sockfd, struct sockaddr_in addr, msg_t msg, bool is_retransmitted) {
     string_t buf;
     int buf_size = 0;
-    message_id_t id;
+    message_id_t id = -1;
     
     memset(&buf, '\0', sizeof(buf));
     if (!is_retransmitted) {
