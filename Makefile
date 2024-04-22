@@ -12,6 +12,7 @@ ZIP_NAME = "xsnieh00.zip"
 
 SRCDIR = src/
 OBJDIR = objs/
+DOCDIR = docs/
 
 # HEADS = $(wildcard $(SRCDIR)*.h)
 HEADS = src/main.h \
@@ -69,4 +70,4 @@ clear:
 
 zip:
 	rm -f $(ZIP_NAME)
-	zip $(ZIP_NAME) $(SRCS) $(HEADS) Makefile README.md CHANGELOG.md LICENSE
+	zip $(ZIP_NAME) $(SRCS) $(HEADS) $(DOCDIR) Makefile README.md CHANGELOG.md LICENSE
